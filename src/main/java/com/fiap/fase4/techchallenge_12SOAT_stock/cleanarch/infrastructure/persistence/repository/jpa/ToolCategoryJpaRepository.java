@@ -1,0 +1,14 @@
+package com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.repository.jpa;
+
+import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.entity.ToolCategoryEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface ToolCategoryJpaRepository extends JpaRepository<ToolCategoryEntity, UUID> {
+
+    Optional<ToolCategoryEntity> findByToolCategoryName(String toolCategoryName);
+    List<ToolCategoryEntity> findByActiveTrue();
+}

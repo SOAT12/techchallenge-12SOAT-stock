@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-table-tool-category
+      author: stock-ms
+      changes:
+        - sqlFile:
+            path: toolCategory/create-table-tool-category.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: create-table-stock
+      author: stock-ms
+      changes:
+        - sqlFile:
+            path: stock/create-table-stock.sql
+            relativeToChangelogFile: true
