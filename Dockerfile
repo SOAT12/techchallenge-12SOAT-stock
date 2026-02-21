@@ -1,30 +1,17 @@
-# Estágio 1: build
+# Stage 1: Build the application
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
+COPY . .
+RUN ./mvnw clean package -DskipTests
 
-# Copia arquivos de dependências
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
-
-# Download de dependências (cache em camada separada)
-RUN ./mvnw dependency:go-offline -B
-
-# Copia código fonte e compila
-COPY src src
-RUN ./mvnw package -DskipTests -B
-
-# Estágio 2: runtime
+# Stage 2: Run the application
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Usuário não-root
+# Create a non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-# Copia o JAR gerado no estágio de build
-COPY --from=build /app/target/*.jar app.jar
-
 EXPOSE 8081
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
