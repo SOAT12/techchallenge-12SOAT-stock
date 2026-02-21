@@ -7,6 +7,7 @@ import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model.ToolCate
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.exception.NotFoundException;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.gateway.StockGateway;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.gateway.ToolCategoryGateway;
+import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.messaging.publisher.SqsEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -20,9 +21,11 @@ import java.util.UUID;
 public class StockUseCase {
 
     private static final String NOT_FOUND_STOCK_ITEM_MSG = "Item de estoque não encontrado.";
+    private static final String OS_STATUS_INSUFICIENT_STOCK = "SEM_ESTOQUE";
 
     private final StockGateway stockGateway;
     private final ToolCategoryGateway toolCategoryGateway;
+    private final SqsEventPublisher sqsEventPublisher;
 
     public Stock createStock(String toolName, BigDecimal value, Integer quantity, UUID toolCategoryId) {
         ToolCategory category = toolCategoryGateway.findById(toolCategoryId)
@@ -58,10 +61,31 @@ public class StockUseCase {
         if (quantityDifference > 0) {
             existingItem.addStock(quantityDifference);
         } else if (quantityDifference < 0) {
-            existingItem.removingStock(Math.abs(quantityDifference));
+            existingItem.removeStock(Math.abs(quantityDifference));
         }
 
         return stockGateway.save(existingItem);
+    }
+
+    public void addStock(UUID id, Integer quantity) {
+        Stock existingItem = stockGateway.findById(id)
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND_STOCK_ITEM_MSG));
+
+        existingItem.addStock(quantity);
+        stockGateway.save(existingItem);
+    }
+
+    public void removeStock(Long osId, UUID id, Integer quantity) {
+        Stock existingItem = stockGateway.findById(id)
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND_STOCK_ITEM_MSG));
+
+        try {
+            existingItem.removeStock(quantity);
+        } catch (IllegalArgumentException e) {
+            sqsEventPublisher.publishOsStatusUpdate(osId, OS_STATUS_INSUFICIENT_STOCK);
+        }
+
+        stockGateway.save(existingItem);
     }
 
     public List<Stock> getAllStock() {

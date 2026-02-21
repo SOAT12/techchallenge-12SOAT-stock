@@ -83,23 +83,23 @@ public class StockTest {
     }
 
     @Test
-    void removingStock_WithSufficientQuantity_ShouldDecreaseQuantity() {
+    void removeStock_WithSufficientQuantity_ShouldDecreaseQuantity() {
         Stock stock = Stock.create("Wrench", BigDecimal.valueOf(15), 20, validCategory);
-        stock.removingStock(15);
+        stock.removeStock(15);
         assertEquals(5, stock.getQuantity());
     }
 
     @Test
-    void removingStock_WithInsufficientQuantity_ShouldThrowException() {
+    void removeStock_WithInsufficientQuantity_ShouldThrowException() {
         Stock stock = Stock.create("Wrench", BigDecimal.valueOf(15), 20, validCategory);
-        Exception e = assertThrows(IllegalArgumentException.class, () -> stock.removingStock(21));
+        Exception e = assertThrows(IllegalArgumentException.class, () -> stock.removeStock(21));
         assertEquals("Quantidade em estoque menor do que a informada.", e.getMessage());
     }
 
     @Test
-    void removingStock_WithZeroQuantity_ShouldThrowException() {
+    void removeStock_WithZeroQuantity_ShouldThrowException() {
         Stock stock = Stock.create("Wrench", BigDecimal.valueOf(15), 20, validCategory);
-        Exception e = assertThrows(IllegalArgumentException.class, () -> stock.removingStock(0));
+        Exception e = assertThrows(IllegalArgumentException.class, () -> stock.removeStock(0));
         assertEquals("Quantidade não pode ser nula ou menor do que zero.", e.getMessage());
     }
 

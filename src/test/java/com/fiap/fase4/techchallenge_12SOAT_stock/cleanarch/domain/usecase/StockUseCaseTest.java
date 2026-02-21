@@ -8,6 +8,7 @@ import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.useCases.Stock
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.exception.NotFoundException;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.gateway.StockGateway;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.gateway.ToolCategoryGateway;
+import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.messaging.publisher.SqsEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ public class StockUseCaseTest {
 
     @Mock
     private ToolCategoryGateway toolCategoryGateway;
+
+    @Mock
+    private SqsEventPublisher sqsEventPublisher;
 
     @InjectMocks
     private StockUseCase stockUseCase;
@@ -123,6 +127,91 @@ public class StockUseCaseTest {
             // Act & Assert
             assertThrows(NotFoundException.class, () -> stockUseCase.updateStockItem(id, "New Tool", BigDecimal.ONE, 10, true, UUID.randomUUID()));
             verify(stockGateway, never()).save(any(Stock.class));
+        }
+    }
+
+    @Nested
+    class AddStock {
+
+        @Test
+        void shouldAddStockWhenItemExists() {
+            var productId = UUID.randomUUID();
+            var stock = mock(Stock.class);
+
+            when(stockGateway.findById(productId))
+                    .thenReturn(Optional.of(stock));
+
+            stockUseCase.addStock(productId, 10);
+
+            verify(stock).addStock(10);
+            verify(stockGateway).save(stock);
+            verifyNoInteractions(sqsEventPublisher);
+        }
+
+        @Test
+        void shouldThrowExceptionWhenItemNotFound() {
+            var productId = UUID.randomUUID();
+
+            when(stockGateway.findById(productId))
+                    .thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class,
+                    () -> stockUseCase.addStock(productId, 10));
+
+            verify(stockGateway, never()).save(any());
+            verifyNoInteractions(sqsEventPublisher);
+        }
+    }
+
+    @Nested
+    class RemoveStock {
+
+        @Test
+        void shouldRemoveStockWhenEnoughQuantity() {
+            var productId = UUID.randomUUID();
+            var stock = mock(Stock.class);
+
+            when(stockGateway.findById(productId))
+                    .thenReturn(Optional.of(stock));
+
+            stockUseCase.removeStock(1L, productId, 5);
+
+            verify(stock).removeStock(5);
+            verify(stockGateway).save(stock);
+            verifyNoInteractions(sqsEventPublisher);
+        }
+
+        @Test
+        void shouldPublishEventWhenStockIsInsufficient() {
+            var productId = UUID.randomUUID();
+            var stock = mock(Stock.class);
+
+            when(stockGateway.findById(productId))
+                    .thenReturn(Optional.of(stock));
+
+            doThrow(new IllegalArgumentException())
+                    .when(stock).removeStock(5);
+
+            stockUseCase.removeStock(1L, productId, 5);
+
+            verify(sqsEventPublisher)
+                    .publishOsStatusUpdate(1L, "SEM_ESTOQUE");
+
+            verify(stockGateway).save(stock);
+        }
+
+        @Test
+        void shouldThrowExceptionWhenItemNotFound() {
+            var productId = UUID.randomUUID();
+
+            when(stockGateway.findById(productId))
+                    .thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class,
+                    () -> stockUseCase.removeStock(1L, productId, 5));
+
+            verify(stockGateway, never()).save(any());
+            verifyNoInteractions(sqsEventPublisher);
         }
     }
 

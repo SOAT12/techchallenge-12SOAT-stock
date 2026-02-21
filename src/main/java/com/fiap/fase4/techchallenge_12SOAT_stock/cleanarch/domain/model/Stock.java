@@ -56,17 +56,16 @@ public class Stock {
         return new Stock(toolName, value, quantity, toolCategory, true, new Date(), new Date());
     }
 
-    public Stock addStock(Integer newQuantity) {
+    public void addStock(Integer newQuantity) {
         if (Objects.isNull(newQuantity) || newQuantity < 0) {
             throw new IllegalArgumentException("Quantidade não pode ser nula ou menor do que zero.");
         }
         this.quantity += newQuantity;
         this.isActive = true;
         this.updatedAt = new Date();
-        return this;
     }
 
-    public Stock removingStock(Integer removingQuantity) {
+    public void removeStock(Integer removingQuantity) {
         if (Objects.isNull(removingQuantity) || removingQuantity < 1) {
             throw new IllegalArgumentException("Quantidade não pode ser nula ou menor do que zero.");
         }
@@ -75,7 +74,6 @@ public class Stock {
         }
         this.quantity -= removingQuantity;
         this.updatedAt = new Date();
-        return this;
     }
 
     public Stock deactivate() {
