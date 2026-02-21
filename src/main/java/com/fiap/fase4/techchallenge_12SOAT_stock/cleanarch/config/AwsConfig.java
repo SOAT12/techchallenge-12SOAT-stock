@@ -5,9 +5,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.SqsClientBuilder;
-
-import java.net.URI;
 
 @Configuration
 public class AwsConfig {
@@ -20,14 +17,9 @@ public class AwsConfig {
 
     @Bean
     public SqsClient sqsClient() {
-        SqsClientBuilder builder = SqsClient.builder()
-                .region(Region.of(region));
-
-        if (endpoint != null && !endpoint.isBlank()) {
-            builder.endpointOverride(URI.create(endpoint));
-        }
-
-        return builder.build();
+        return SqsClient.builder()
+                .region(Region.of(region))
+                .build();
     }
 
 }

@@ -28,7 +28,6 @@ springdoc:
 
 aws:
   region: us-east-1
-  endpoint: http://localhost:4566
   sqs:
     add-stock-queue-url: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/stock-add-event
     remove-stock-queue-url: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/stock-remove-event
