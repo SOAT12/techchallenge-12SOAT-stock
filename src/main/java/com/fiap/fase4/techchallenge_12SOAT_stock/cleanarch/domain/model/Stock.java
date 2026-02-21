@@ -1,10 +1,13 @@
 package com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model;
 
+import lombok.Builder;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 
+@Builder
 public class Stock {
 
     private UUID id;

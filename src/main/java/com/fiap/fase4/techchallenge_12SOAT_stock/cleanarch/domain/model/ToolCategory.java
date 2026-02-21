@@ -66,6 +66,15 @@ public class ToolCategory {
     }
 
     @Override
+    public String toString() {
+        return "Stock {" +
+                "id=" + id +
+                ", toolCategoryName='" + toolCategoryName + '\'' +
+                ", isActive=" + isActive + '\'' +
+                '}';
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(id);
     }
