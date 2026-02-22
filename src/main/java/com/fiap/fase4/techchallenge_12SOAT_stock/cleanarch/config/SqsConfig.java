@@ -7,13 +7,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
 @Configuration
-public class AwsConfig {
+public class SqsConfig {
 
     @Value("${aws.region}")
     private String region;
-
-    @Value("${aws.endpoint}")
-    String endpoint;
 
     @Bean
     public SqsClient sqsClient() {
