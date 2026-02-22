@@ -49,4 +49,4 @@ jobs:
       # Rollout restart Stock API
       - name: Rollout Stock API
         run: |
-          kubectl rollout restart deployment stock-api -n default
+          kubectl rollout restart deployment stock-api-deployment -n default
