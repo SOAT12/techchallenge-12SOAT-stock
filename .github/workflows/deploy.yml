@@ -2,9 +2,14 @@ name: Deploy Stock API
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, develop, 'release/*' ]
+  pull_request:
+    branches: [ main, develop, 'release/*' ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  
 env:
   AWS_REGION: us-east-1
   EKS_CLUSTER: techchallenge-cluster
