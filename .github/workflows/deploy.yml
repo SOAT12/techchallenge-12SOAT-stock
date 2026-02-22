@@ -136,6 +136,7 @@ jobs:
       - name: Build, tag, and push image to ECR Public
         id: build-image
         env:
+          ACCOUNT_ID: 258531703731
           ECR_REPOSITORY: stock-api
           IMAGE_TAG: latest
         run: |
