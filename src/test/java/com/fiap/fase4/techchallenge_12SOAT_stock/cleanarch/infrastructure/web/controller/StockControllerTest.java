@@ -1,32 +1,28 @@
 package com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.controller;
 
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model.Stock;
-import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model.ToolCategory;
+import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model.StockAvailabilityResult;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.useCases.StockUseCase;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.StockPresenter;
-import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.CreateStockRequestDTO;
-import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.StockRequestDTO;
-import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.StockResponseDTO;
-import org.junit.jupiter.api.BeforeEach;
+import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-public class StockControllerTest {
+@ExtendWith(MockitoExtension.class)
+class StockControllerTest {
 
     @Mock
     private StockUseCase stockUseCase;
@@ -37,120 +33,117 @@ public class StockControllerTest {
     @InjectMocks
     private StockController stockController;
 
-    private ToolCategory validCategory;
-    private UUID categoryId = UUID.randomUUID();
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        validCategory = new ToolCategory(categoryId, "Test Category", true);
-    }
-
     @Test
-    void createStock_ShouldDelegateToUseCaseAndPresenter() {
-        CreateStockRequestDTO requestDTO = new CreateStockRequestDTO("New Stock", BigDecimal.TEN, 10, categoryId);
-        Stock domainObject = Stock.create("New Stock", BigDecimal.TEN, 10, validCategory);
-        StockResponseDTO responseDTO = new StockResponseDTO();
+    void createStock() {
+        CreateStockRequestDTO dto = new CreateStockRequestDTO("Martelo", BigDecimal.TEN, 5, UUID.randomUUID());
+        Stock mockStock = Stock.builder().build();
+        StockResponseDTO responseDTO = StockResponseDTO.builder().toolName("Martelo").build();
 
-        when(stockUseCase.createStock(anyString(), any(), anyInt(), any(UUID.class))).thenReturn(domainObject);
-        when(stockPresenter.toStockResponseDTO(domainObject)).thenReturn(responseDTO);
+        when(stockUseCase.createStock(anyString(), any(BigDecimal.class), anyInt(), any(UUID.class)))
+                .thenReturn(mockStock);
+        when(stockPresenter.toStockResponseDTO(mockStock)).thenReturn(responseDTO);
 
-        StockResponseDTO result = stockController.createStock(requestDTO);
+        StockResponseDTO result = stockController.createStock(dto);
 
         assertNotNull(result);
-        verify(stockUseCase, times(1)).createStock("New Stock", BigDecimal.TEN, 10, categoryId);
-        verify(stockPresenter, times(1)).toStockResponseDTO(domainObject);
+        assertEquals("Martelo", result.getToolName());
+        verify(stockUseCase).createStock(dto.getToolName(), dto.getValue(), dto.getQuantity(), dto.getToolCategoryId());
     }
 
     @Test
-    void getStockById_ShouldDelegateToUseCaseAndPresenter() {
+    void getStockById() {
         UUID id = UUID.randomUUID();
-        Stock domainObject = new Stock(id, "Test", BigDecimal.ONE, 1, validCategory, true, null, null);
-        StockResponseDTO responseDTO = new StockResponseDTO();
+        Stock mockStock = Stock.builder().build();
+        StockResponseDTO responseDTO = StockResponseDTO.builder().build();
 
-        when(stockUseCase.findStockItemById(id)).thenReturn(domainObject);
-        when(stockPresenter.toStockResponseDTO(domainObject)).thenReturn(responseDTO);
+        when(stockUseCase.findStockItemById(id)).thenReturn(mockStock);
+        when(stockPresenter.toStockResponseDTO(mockStock)).thenReturn(responseDTO);
 
         StockResponseDTO result = stockController.getStockById(id);
 
         assertNotNull(result);
-        verify(stockUseCase, times(1)).findStockItemById(id);
-        verify(stockPresenter, times(1)).toStockResponseDTO(domainObject);
+        verify(stockUseCase).findStockItemById(id);
     }
 
     @Test
-    void getAllStockItems_ShouldReturnListOfDTOs() {
-        Stock domainObject = Stock.create("Test", BigDecimal.ONE, 1, validCategory);
-        List<Stock> domainList = Collections.singletonList(domainObject);
-        StockResponseDTO responseDTO = new StockResponseDTO();
-
-        when(stockUseCase.getAllStock()).thenReturn(domainList);
-        when(stockPresenter.toStockResponseDTO(domainObject)).thenReturn(responseDTO);
+    void getAllStockItems() {
+        Stock mockStock = Stock.builder().build();
+        when(stockUseCase.getAllStock()).thenReturn(List.of(mockStock));
+        when(stockPresenter.toStockResponseDTO(mockStock)).thenReturn(StockResponseDTO.builder().build());
 
         List<StockResponseDTO> result = stockController.getAllStockItems();
 
-        assertFalse(result.isEmpty());
         assertEquals(1, result.size());
-        verify(stockUseCase, times(1)).getAllStock();
+        verify(stockUseCase).getAllStock();
     }
 
     @Test
-    void getAllStockItemsActive_ShouldReturnListOfDTOs() {
-        Stock domainObject = Stock.create("Test", BigDecimal.ONE, 1, validCategory);
-        List<Stock> domainList = Collections.singletonList(domainObject);
-        StockResponseDTO responseDTO = new StockResponseDTO();
-
-        when(stockUseCase.getAllActiveStockItems()).thenReturn(domainList);
-        when(stockPresenter.toStockResponseDTO(domainObject)).thenReturn(responseDTO);
+    void getAllStockItemsActive() {
+        Stock mockStock = Stock.builder().build();
+        when(stockUseCase.getAllActiveStockItems()).thenReturn(List.of(mockStock));
+        when(stockPresenter.toStockResponseDTO(mockStock)).thenReturn(StockResponseDTO.builder().build());
 
         List<StockResponseDTO> result = stockController.getAllStockItemsActive();
 
-        assertFalse(result.isEmpty());
         assertEquals(1, result.size());
-        verify(stockUseCase, times(1)).getAllActiveStockItems();
+        verify(stockUseCase).getAllActiveStockItems();
     }
 
     @Test
-    void updateStock_ShouldDelegateToUseCaseAndPresenter() {
+    void updateStock() {
         UUID id = UUID.randomUUID();
-        StockRequestDTO requestDTO = new StockRequestDTO("Updated", BigDecimal.TEN, true, 20, categoryId);
-        Stock domainObject = new Stock(id, "Updated", BigDecimal.TEN, 20, validCategory, true, null, null);
-        StockResponseDTO responseDTO = new StockResponseDTO();
+        StockRequestDTO dto = new StockRequestDTO("Pá", BigDecimal.ONE, true, 10, UUID.randomUUID());
+        Stock mockStock = Stock.builder().build();
 
-        when(stockUseCase.updateStockItem(id, "Updated", BigDecimal.TEN, 20, true, categoryId)).thenReturn(domainObject);
-        when(stockPresenter.toStockResponseDTO(domainObject)).thenReturn(responseDTO);
+        when(stockUseCase.updateStockItem(id, dto.getToolName(), dto.getValue(), dto.getQuantity(), dto.getActive(),
+                dto.getToolCategoryId())).thenReturn(mockStock);
+        when(stockPresenter.toStockResponseDTO(mockStock)).thenReturn(StockResponseDTO.builder().build());
 
-        StockResponseDTO result = stockController.updateStock(id, requestDTO);
+        StockResponseDTO result = stockController.updateStock(id, dto);
 
         assertNotNull(result);
-        verify(stockUseCase, times(1)).updateStockItem(id, "Updated", BigDecimal.TEN, 20, true, categoryId);
-        verify(stockPresenter, times(1)).toStockResponseDTO(domainObject);
+        verify(stockUseCase).updateStockItem(id, dto.getToolName(), dto.getValue(), dto.getQuantity(), dto.getActive(),
+                dto.getToolCategoryId());
     }
 
     @Test
-    void reactivateStock_ShouldDelegateToUseCaseAndPresenter() {
+    void reactivateStock() {
         UUID id = UUID.randomUUID();
-        Stock domainObject = new Stock(id, "Reactivated", BigDecimal.ONE, 1, validCategory, true, null, null);
-        StockResponseDTO responseDTO = new StockResponseDTO();
-
-        when(stockUseCase.reactivateStockItem(id)).thenReturn(domainObject);
-        when(stockPresenter.toStockResponseDTO(domainObject)).thenReturn(responseDTO);
+        Stock mockStock = Stock.builder().build();
+        when(stockUseCase.reactivateStockItem(id)).thenReturn(mockStock);
+        when(stockPresenter.toStockResponseDTO(mockStock)).thenReturn(StockResponseDTO.builder().build());
 
         StockResponseDTO result = stockController.reactivateStock(id);
 
         assertNotNull(result);
-        verify(stockUseCase, times(1)).reactivateStockItem(id);
-        verify(stockPresenter, times(1)).toStockResponseDTO(domainObject);
+        verify(stockUseCase).reactivateStockItem(id);
     }
 
     @Test
-    void logicallyDeleteStock_ShouldCallUseCase() {
+    void logicallyDeleteStock() {
         UUID id = UUID.randomUUID();
-        doNothing().when(stockUseCase).inactivateStockItem(id);
-
         stockController.logicallyDeleteStock(id);
-
-        verify(stockUseCase, times(1)).inactivateStockItem(id);
+        verify(stockUseCase).inactivateStockItem(id);
     }
 
+    @Test
+    void getStockAvailability() {
+        StockAvailabilityRequestDTO request = new StockAvailabilityRequestDTO();
+        StockAvailabilityRequestDTO.StockItemDTO itemDTO = new StockAvailabilityRequestDTO.StockItemDTO();
+        itemDTO.setStockId(UUID.randomUUID());
+        itemDTO.setQuantity(5);
+        request.setItems(List.of(itemDTO));
+
+        StockAvailabilityResult mockResult = new StockAvailabilityResult(true, List.of());
+        when(stockUseCase.getStockAvailability(any())).thenReturn(mockResult);
+
+        StockAvailabilityResponseDTO responseDTO = new StockAvailabilityResponseDTO(true, List.of());
+        when(stockPresenter.toStockAvailabilityResponseDTO(mockResult)).thenReturn(responseDTO);
+
+        StockAvailabilityResponseDTO result = stockController.getStockAvailability(request);
+
+        assertNotNull(result);
+        assertTrue(result.isAvailable());
+        verify(stockUseCase).getStockAvailability(any());
+    }
 }

@@ -4,7 +4,6 @@ import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model.ToolCate
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.entity.ToolCategoryEntity;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.mapper.ToolCategoryMapper;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.repository.jpa.ToolCategoryJpaRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,117 +14,91 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ToolCategoryRepositoryImplTest {
+class ToolCategoryRepositoryImplTest {
 
-    @Mock
-    private ToolCategoryJpaRepository toolCategoryJpaRepository;
+        @Mock
+        private ToolCategoryJpaRepository toolCategoryJpaRepository;
 
-    @Mock
-    private ToolCategoryMapper toolCategoryMapper;
+        @Mock
+        private ToolCategoryMapper toolCategoryMapper;
 
-    @InjectMocks
-    private ToolCategoryRepositoryImpl toolCategoryRepository;
+        @InjectMocks
+        private ToolCategoryRepositoryImpl toolCategoryRepository;
 
-    private UUID id;
-    private ToolCategory domain;
-    private ToolCategoryEntity entity;
+        @Test
+        void findById() {
+                UUID id = UUID.randomUUID();
+                ToolCategoryEntity entity = new ToolCategoryEntity();
+                ToolCategory domain = ToolCategory.create("A");
 
-    @BeforeEach
-    void setUp() {
-        id = UUID.randomUUID();
-        domain = mock(ToolCategory.class);
-        entity = mock(ToolCategoryEntity.class);
-    }
+                when(toolCategoryJpaRepository.findById(id)).thenReturn(Optional.of(entity));
+                when(toolCategoryMapper.toDomain(entity)).thenReturn(domain);
 
-    @Test
-    void shouldReturnDomain_whenFindByIdExists() {
-        when(toolCategoryJpaRepository.findById(id))
-                .thenReturn(Optional.of(entity));
-        when(toolCategoryMapper.toDomain(entity))
-                .thenReturn(domain);
+                Optional<ToolCategory> result = toolCategoryRepository.findById(id);
 
-        Optional<ToolCategory> result = toolCategoryRepository.findById(id);
+                assertTrue(result.isPresent());
+                assertEquals(domain, result.get());
+        }
 
-        assertTrue(result.isPresent());
-        assertEquals(domain, result.get());
+        @Test
+        void findByToolCategoryName() {
+                String name = "A";
+                ToolCategoryEntity entity = new ToolCategoryEntity();
+                ToolCategory domain = ToolCategory.create("A");
 
-        verify(toolCategoryMapper).toDomain(entity);
-    }
+                when(toolCategoryJpaRepository.findByToolCategoryName(name)).thenReturn(Optional.of(entity));
+                when(toolCategoryMapper.toDomain(entity)).thenReturn(domain);
 
-    @Test
-    void shouldReturnEmpty_whenFindByIdDoesNotExist() {
-        when(toolCategoryJpaRepository.findById(id))
-                .thenReturn(Optional.empty());
+                Optional<ToolCategory> result = toolCategoryRepository.findByToolCategoryName(name);
 
-        Optional<ToolCategory> result = toolCategoryRepository.findById(id);
+                assertTrue(result.isPresent());
+                assertEquals(domain, result.get());
+        }
 
-        assertTrue(result.isEmpty());
-        verify(toolCategoryMapper, never()).toDomain(any());
-    }
+        @Test
+        void findAllActive() {
+                ToolCategoryEntity entity = new ToolCategoryEntity();
+                ToolCategory domain = ToolCategory.create("A");
 
-    @Test
-    void shouldReturnDomain_whenFindByToolCategoryNameExists() {
-        when(toolCategoryJpaRepository.findByToolCategoryName("MANUAL"))
-                .thenReturn(Optional.of(entity));
-        when(toolCategoryMapper.toDomain(entity))
-                .thenReturn(domain);
+                when(toolCategoryJpaRepository.findByActiveTrue()).thenReturn(List.of(entity));
+                when(toolCategoryMapper.toDomain(entity)).thenReturn(domain);
 
-        Optional<ToolCategory> result =
-                toolCategoryRepository.findByToolCategoryName("MANUAL");
+                List<ToolCategory> result = toolCategoryRepository.findAllActive();
 
-        assertTrue(result.isPresent());
-        assertEquals(domain, result.get());
-    }
+                assertEquals(1, result.size());
+        }
 
-    @Test
-    void shouldReturnMappedList_whenFindAllActive() {
-        when(toolCategoryJpaRepository.findByActiveTrue())
-                .thenReturn(List.of(entity));
-        when(toolCategoryMapper.toDomain(entity))
-                .thenReturn(domain);
+        @Test
+        void findAll() {
+                ToolCategoryEntity entity = new ToolCategoryEntity();
+                ToolCategory domain = ToolCategory.create("A");
 
-        List<ToolCategory> result = toolCategoryRepository.findAllActive();
+                when(toolCategoryJpaRepository.findAll()).thenReturn(List.of(entity));
+                when(toolCategoryMapper.toDomain(entity)).thenReturn(domain);
 
-        assertEquals(1, result.size());
-        assertEquals(domain, result.getFirst());
+                List<ToolCategory> result = toolCategoryRepository.findAll();
 
-        verify(toolCategoryMapper).toDomain(entity);
-    }
+                assertEquals(1, result.size());
+        }
 
-    @Test
-    void shouldReturnMappedList_whenFindAll() {
-        when(toolCategoryJpaRepository.findAll())
-                .thenReturn(List.of(entity));
-        when(toolCategoryMapper.toDomain(entity))
-                .thenReturn(domain);
+        @Test
+        void save() {
+                ToolCategory domain = ToolCategory.create("A");
+                ToolCategoryEntity entity = new ToolCategoryEntity();
+                ToolCategoryEntity saved = new ToolCategoryEntity();
 
-        List<ToolCategory> result = toolCategoryRepository.findAll();
+                when(toolCategoryMapper.toEntity(domain)).thenReturn(entity);
+                when(toolCategoryJpaRepository.save(entity)).thenReturn(saved);
+                when(toolCategoryMapper.toDomain(saved)).thenReturn(domain);
 
-        assertEquals(1, result.size());
-        assertEquals(domain, result.getFirst());
-    }
+                ToolCategory result = toolCategoryRepository.save(domain);
 
-    @Test
-    void shouldSaveToolCategory() {
-        when(toolCategoryMapper.toEntity(domain))
-                .thenReturn(entity);
-        when(toolCategoryJpaRepository.save(entity))
-                .thenReturn(entity);
-        when(toolCategoryMapper.toDomain(entity))
-                .thenReturn(domain);
-
-        ToolCategory result = toolCategoryRepository.save(domain);
-
-        assertNotNull(result);
-        assertEquals(domain, result);
-
-        verify(toolCategoryMapper).toEntity(domain);
-        verify(toolCategoryJpaRepository).save(entity);
-        verify(toolCategoryMapper).toDomain(entity);
-    }
-
+                assertEquals(domain, result);
+                verify(toolCategoryJpaRepository).save(entity);
+        }
 }

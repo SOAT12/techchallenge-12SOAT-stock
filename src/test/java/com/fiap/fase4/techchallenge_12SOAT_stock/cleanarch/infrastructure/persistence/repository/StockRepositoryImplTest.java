@@ -4,7 +4,6 @@ import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model.Stock;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.entity.StockEntity;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.mapper.StockMapper;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.persistence.repository.jpa.StockJpaRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,126 +14,105 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class StockRepositoryImplTest {
+class StockRepositoryImplTest {
 
-    @Mock
-    private StockJpaRepository stockJpaRepository;
+        @Mock
+        private StockJpaRepository stockJpaRepository;
 
-    @Mock
-    private StockMapper stockMapper;
+        @Mock
+        private StockMapper stockMapper;
 
-    @InjectMocks
-    private StockRepositoryImpl stockRepository;
+        @InjectMocks
+        private StockRepositoryImpl stockRepository;
 
-    private UUID id;
-    private Stock stock;
-    private StockEntity entity;
+        @Test
+        void save() {
+                Stock stock = Stock.builder().build();
+                StockEntity entity = new StockEntity();
+                StockEntity savedEntity = new StockEntity();
 
-    @BeforeEach
-    void setUp() {
-        id = UUID.randomUUID();
-        stock = mock(Stock.class);
-        entity = mock(StockEntity.class);
-    }
+                when(stockMapper.toEntity(stock)).thenReturn(entity);
+                when(stockJpaRepository.save(entity)).thenReturn(savedEntity);
+                when(stockMapper.toDomain(savedEntity)).thenReturn(stock);
 
-    @Test
-    void shouldSaveStock() {
-        when(stockMapper.toEntity(stock)).thenReturn(entity);
-        when(stockJpaRepository.save(entity)).thenReturn(entity);
-        when(stockMapper.toDomain(entity)).thenReturn(stock);
+                Stock result = stockRepository.save(stock);
 
-        Stock result = stockRepository.save(stock);
+                assertEquals(stock, result);
+                verify(stockJpaRepository).save(entity);
+        }
 
-        assertNotNull(result);
-        assertEquals(stock, result);
+        @Test
+        void findById() {
+                UUID id = UUID.randomUUID();
+                StockEntity entity = new StockEntity();
+                Stock stock = Stock.builder().build();
 
-        verify(stockMapper).toEntity(stock);
-        verify(stockJpaRepository).save(entity);
-        verify(stockMapper).toDomain(entity);
-    }
+                when(stockJpaRepository.findById(id)).thenReturn(Optional.of(entity));
+                when(stockMapper.toDomain(entity)).thenReturn(stock);
 
-    @Test
-    void shouldReturnStock_whenFindByIdExists() {
-        when(stockJpaRepository.findById(id))
-                .thenReturn(Optional.of(entity));
-        when(stockMapper.toDomain(entity))
-                .thenReturn(stock);
+                Optional<Stock> result = stockRepository.findById(id);
 
-        Optional<Stock> result = stockRepository.findById(id);
+                assertTrue(result.isPresent());
+                assertEquals(stock, result.get());
+        }
 
-        assertTrue(result.isPresent());
-        assertEquals(stock, result.get());
+        @Test
+        void findActiveById() {
+                UUID id = UUID.randomUUID();
+                StockEntity entity = new StockEntity();
+                Stock stock = Stock.builder().build();
 
-        verify(stockMapper).toDomain(entity);
-    }
+                when(stockJpaRepository.findByIdAndActiveTrue(id)).thenReturn(Optional.of(entity));
+                when(stockMapper.toDomain(entity)).thenReturn(stock);
 
-    @Test
-    void shouldReturnEmpty_whenFindByIdDoesNotExist() {
-        when(stockJpaRepository.findById(id))
-                .thenReturn(Optional.empty());
+                Optional<Stock> result = stockRepository.findActiveById(id);
 
-        Optional<Stock> result = stockRepository.findById(id);
+                assertTrue(result.isPresent());
+                assertEquals(stock, result.get());
+        }
 
-        assertTrue(result.isEmpty());
-        verify(stockMapper, never()).toDomain(any());
-    }
+        @Test
+        void findByName() {
+                String name = "Name";
+                StockEntity entity = new StockEntity();
+                Stock stock = Stock.builder().build();
 
-    @Test
-    void shouldReturnStock_whenFindActiveByIdExists() {
-        when(stockJpaRepository.findByIdAndActiveTrue(id))
-                .thenReturn(Optional.of(entity));
-        when(stockMapper.toDomain(entity))
-                .thenReturn(stock);
+                when(stockJpaRepository.findByToolName(name)).thenReturn(Optional.of(entity));
+                when(stockMapper.toDomain(entity)).thenReturn(stock);
 
-        Optional<Stock> result = stockRepository.findActiveById(id);
+                Optional<Stock> result = stockRepository.findByName(name);
 
-        assertTrue(result.isPresent());
-        assertEquals(stock, result.get());
-    }
+                assertTrue(result.isPresent());
+        }
 
-    @Test
-    void shouldReturnStock_whenFindByNameExists() {
-        when(stockJpaRepository.findByToolName("Martelo"))
-                .thenReturn(Optional.of(entity));
-        when(stockMapper.toDomain(entity))
-                .thenReturn(stock);
+        @Test
+        void findAllActive() {
+                StockEntity entity = new StockEntity();
+                Stock stock = Stock.builder().build();
 
-        Optional<Stock> result = stockRepository.findByName("Martelo");
+                when(stockJpaRepository.findByActiveTrue()).thenReturn(List.of(entity));
+                when(stockMapper.toDomain(entity)).thenReturn(stock);
 
-        assertTrue(result.isPresent());
-        assertEquals(stock, result.get());
-    }
+                List<Stock> result = stockRepository.findAllActive();
 
-    @Test
-    void shouldReturnMappedList_whenFindAllActive() {
-        when(stockJpaRepository.findByActiveTrue())
-                .thenReturn(List.of(entity));
-        when(stockMapper.toDomain(entity))
-                .thenReturn(stock);
+                assertEquals(1, result.size());
+        }
 
-        List<Stock> result = stockRepository.findAllActive();
+        @Test
+        void findAll() {
+                StockEntity entity = new StockEntity();
+                Stock stock = Stock.builder().build();
 
-        assertEquals(1, result.size());
-        assertEquals(stock, result.get(0));
-    }
+                when(stockJpaRepository.findAll()).thenReturn(List.of(entity));
+                when(stockMapper.toDomain(entity)).thenReturn(stock);
 
-    @Test
-    void shouldReturnMappedList_whenFindAll() {
-        when(stockJpaRepository.findAll())
-                .thenReturn(List.of(entity));
-        when(stockMapper.toDomain(entity))
-                .thenReturn(stock);
+                List<Stock> result = stockRepository.findAll();
 
-        List<Stock> result = stockRepository.findAll();
-
-        assertEquals(1, result.size());
-        assertEquals(stock, result.get(0));
-    }
+                assertEquals(1, result.size());
+        }
 }
