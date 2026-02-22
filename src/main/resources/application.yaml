@@ -1,11 +1,6 @@
 spring:
   application:
     name: techchallenge-12SOAT-stock
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:stock_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:password}
-    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -26,9 +21,23 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  environment: prod
+
 aws:
   region: us-east-1
   sqs:
-    add-stock-queue-url: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/stock-add-event
-    remove-stock-queue-url: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/stock-remove-event
-    os-status-queue-url: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/os-update-status-event
+    add-stock-queue-url: https://sqs.us-east-1.amazonaws.com/258531703731/stock-add-event
+    remove-stock-queue-url: https://sqs.us-east-1.amazonaws.com/258531703731/stock-remove-event
+    os-status-queue-url: https://sqs.us-east-1.amazonaws.com/258531703731/os-status-update-event
+  secret:
+    name: techchallenge-db-credentials
+    key: ${AWS_SECRET_ACCESS_KEY:dummy}
+  access:
+    key: ${AWS_ACCESS_KEY_ID:dummy}
