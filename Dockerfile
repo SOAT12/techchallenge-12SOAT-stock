@@ -1,8 +1,8 @@
-# Stage 1: Build the application
-FROM eclipse-temurin:21-jdk-alpine AS build
+# Stage 1: Build the application (Agora usando uma imagem com Maven embutido)
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 COPY . .
-RUN chmod +x mvnw && ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Stage 2: Run the application
 FROM eclipse-temurin:21-jre-alpine
