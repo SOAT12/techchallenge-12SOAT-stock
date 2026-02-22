@@ -8,6 +8,7 @@ on:
 env:
   AWS_REGION: us-east-1
   EKS_CLUSTER: techchallenge-cluster
+  ECR_REPOSITORY: stock-api
   ACCOUNT_ID: 258531703731
 
 jobs:
@@ -36,9 +37,9 @@ jobs:
       # Build & Push Stock API
       - name: Build & Push Stock API
         run: |
-          docker build -t stock-api ./stock-api
-          docker tag stock-api:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/stock-api:latest
-          docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/stock-api:latest
+          ECR_REGISTRY=${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       # Atualiza kubeconfig
       - name: Update kubeconfig
