@@ -19,7 +19,7 @@
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<sonar.projectKey>AlexPires1_techchallenge-12SOAT</sonar.projectKey>
+		<sonar.projectKey>SOAT12_techchallenge-12SOAT-stock</sonar.projectKey>
 	 	<sonar.organization>techchallenge-12soat</sonar.organization>
 		<sonar.scm.provider>git</sonar.scm.provider>
 	</properties>
