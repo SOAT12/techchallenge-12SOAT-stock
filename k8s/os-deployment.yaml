@@ -21,11 +21,9 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
-        env:
-        - name: AWS_SECRET_ACCESS_KEY
-          value: ""
-        - name: AWS_ACCESS_KEY_ID
-          value: ""
+        envFrom:
+          - secretRef:
+              name: stock-secrets
         resources:
           requests:
             cpu: 100m
