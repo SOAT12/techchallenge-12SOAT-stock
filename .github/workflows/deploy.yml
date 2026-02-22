@@ -1,51 +1,201 @@
+
 name: Deploy Stock API
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, develop, 'release/*' ]
+  pull_request:
+    branches: [ main, develop, 'release/*' ]
 
-env:
-  AWS_REGION: us-east-1
-  EKS_CLUSTER: techchallenge-cluster
-  ACCOUNT_ID: 258531703731
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  build-and-test:
+    name: Build & Unit Test
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21 and Cache Maven packages
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run Build and Tests
+        run: mvn -B verify
+
+      - name: Upload workspace for subsequent jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace
+          path: .
+
+      - name: Upload application artifact (.jar) for publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-jar
+          path: target/*.jar
+
+  code-analysis:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout code (for SonarCloud SCM)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace
+
+      - name: Run SonarCloud Analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=AlexPires1_techchallenge-12SOAT
+
+  validate-dockerfile:
+    name: Validate Dockerfile
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
 
     steps:
-      # Checkout do código
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Configura credenciais AWS
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Lint Dockerfile for best practices
+        uses: hadolint/hadolint-action@v3.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          dockerfile: ./Dockerfile
+          ignore: DL3006
 
-      # Login no ECR
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-      # Build & Push Stock API
-      - name: Build & Push Stock API
-        run: |
-          docker build -t stock-api ./stock-api
-          docker tag stock-api:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/stock-api:latest
-          docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/stock-api:latest
+      - name: Scan Dockerfile's base images for vulnerabilities with Trivy
+        uses: aquasecurity/trivy-action@0.22.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
 
-      # Atualiza kubeconfig
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
 
-      # Rollout restart Stock API
-      - name: Rollout Stock API
+  build-and-push-image:
+    name: Build & Push to ECR Public
+    runs-on: ubuntu-latest
+    needs: [code-analysis, validate-dockerfile]
+    outputs:
+      image_uri: ${{ steps.build-image.outputs.image }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsAppDeployRole
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR Public
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
+      - name: Build, tag, and push image to ECR Public
+        id: build-image
+        env:
+          ECR_REPOSITORY: stock-api
+          IMAGE_TAG: latest
         run: |
-          kubectl rollout restart deployment stock-api -n default
+          ECR_REGISTRY=${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: build-and-push-image
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsAppDeployRole
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init (to read remote state)
+        run: terraform init
+        working-directory: ./ops
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./ops
+
+      - name: Get EKS Cluster Info from Terraform Output
+        id: get_cluster_info
+        run: |
+          CLUSTER_NAME=$(terraform output -raw cluster_name)
+          echo "CLUSTER_NAME=$CLUSTER_NAME" >> "$GITHUB_OUTPUT"
+        working-directory: ./ops
+
+      - name: Update Kubeconfig
+        run: aws eks update-kubeconfig --name ${{ steps.get_cluster_info.outputs.CLUSTER_NAME }} --region us-east-1
+
+      - name: Deploy to Kubernetes
+        run: |
+          echo '${{ secrets.AWS_ACCESS_KEY_ID }}'
+          echo '${{ secrets.AWS_SECRET_ACCESS_KEY }}'
+          kubectl create secret generic techchallenge-secrets \
+            --namespace techchallenge \
+            --from-literal=AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}' \
+            --from-literal=AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}' \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          cd k8s
+          kustomize edit set image public.ecr.aws/z0l6i1e3/techchallenge-12soat/api:monitoramento=public.ecr.aws/z0l6i1e3/techchallenge-12soat/api:latest
+          cd ..
+          
+          kubectl apply -k k8s/ 
+          kubectl rollout restart deployment/techchallenge-app-deployment -n techchallenge
+          kubectl rollout status deployment/techchallenge-app-deployment -n techchallenge
