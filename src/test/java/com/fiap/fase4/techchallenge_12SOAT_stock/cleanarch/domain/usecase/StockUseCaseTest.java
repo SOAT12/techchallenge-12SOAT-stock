@@ -195,7 +195,7 @@ public class StockUseCaseTest {
             stockUseCase.removeStock(1L, productId, 5);
 
             verify(sqsEventPublisher)
-                    .publishOsStatusUpdate(1L, "SEM_ESTOQUE");
+                    .publishOsStatusUpdate(1L, "WAITING_FOR_STOCK");
 
             verify(stockGateway).save(stock);
         }

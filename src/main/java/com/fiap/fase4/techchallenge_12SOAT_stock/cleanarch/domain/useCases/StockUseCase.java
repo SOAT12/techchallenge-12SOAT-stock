@@ -21,7 +21,7 @@ import java.util.UUID;
 public class StockUseCase {
 
     private static final String NOT_FOUND_STOCK_ITEM_MSG = "Item de estoque não encontrado.";
-    private static final String OS_STATUS_INSUFICIENT_STOCK = "SEM_ESTOQUE";
+    private static final String WAITING_FOR_STOCK_OS_STATUS = "WAITING_FOR_STOCK";
 
     private final StockGateway stockGateway;
     private final ToolCategoryGateway toolCategoryGateway;
@@ -82,7 +82,7 @@ public class StockUseCase {
         try {
             existingItem.removeStock(quantity);
         } catch (IllegalArgumentException e) {
-            sqsEventPublisher.publishOsStatusUpdate(osId, OS_STATUS_INSUFICIENT_STOCK);
+            sqsEventPublisher.publishOsStatusUpdate(osId, WAITING_FOR_STOCK_OS_STATUS);
         }
 
         stockGateway.save(existingItem);
