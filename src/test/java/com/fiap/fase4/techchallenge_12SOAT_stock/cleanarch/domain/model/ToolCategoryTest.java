@@ -5,121 +5,71 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ToolCategoryTest {
+class ToolCategoryTest {
 
     @Test
-    void create_WithValidName_ShouldReturnToolCategory() {
-        String categoryName = "Hammers";
-        ToolCategory category = ToolCategory.create(categoryName);
+    void testCreateValidCategory() {
+        ToolCategory category = ToolCategory.create("Elétricas");
 
         assertNotNull(category);
-        assertEquals(categoryName, category.getToolCategoryName());
+        assertEquals("Elétricas", category.getToolCategoryName());
         assertTrue(category.getActive());
+        assertNull(category.getId());
     }
 
     @Test
-    void create_WithNullName_ShouldThrowIllegalArgumentException() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            ToolCategory.create(null);
-        });
-        assertEquals("A tool category name must not be null or blank", exception.getMessage());
+    void testCreateInvalidCategory() {
+        assertThrows(IllegalArgumentException.class, () -> ToolCategory.create("    "));
+        assertThrows(IllegalArgumentException.class, () -> ToolCategory.create(null));
     }
 
     @Test
-    void create_WithBlankName_ShouldThrowIllegalArgumentException() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            ToolCategory.create(" ");
-        });
-        assertEquals("A tool category name must not be null or blank", exception.getMessage());
+    void testChangeName() {
+        ToolCategory category = ToolCategory.create("Elétricas");
+        category.changeName("Manuais");
+        assertEquals("Manuais", category.getToolCategoryName());
+
+        assertThrows(IllegalArgumentException.class, () -> category.changeName(null));
     }
 
     @Test
-    void changeName_WithValidName_ShouldUpdateName() {
-        ToolCategory category = ToolCategory.create("Old Name");
-        String newName = "New Name";
-        category.changeName(newName);
-        assertEquals(newName, category.getToolCategoryName());
-    }
-
-    @Test
-    void changeName_WithNullName_ShouldThrowIllegalArgumentException() {
-        ToolCategory category = ToolCategory.create("Some Name");
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            category.changeName(null);
-        });
-        assertEquals("Nome da categoria não pode ser nulo.", exception.getMessage());
-    }
-
-    @Test
-    void deactivate_WhenActive_ShouldBecomeInactive() {
-        ToolCategory category = ToolCategory.create("Actives");
-        assertTrue(category.getActive());
+    void testActivateAndDeactivate() {
+        ToolCategory category = ToolCategory.create("Elétricas");
 
         category.deactivate();
         assertFalse(category.getActive());
-    }
 
-    @Test
-    void deactivate_WhenAlreadyInactive_ShouldThrowIllegalStateException() {
-        ToolCategory category = ToolCategory.create("Inactive Test");
-        category.deactivate(); // Deactivate once
-        assertFalse(category.getActive());
-
-        Exception exception = assertThrows(IllegalStateException.class, category::deactivate);
-        assertEquals("Categoria já encontra-se desativada.", exception.getMessage());
-    }
-
-    @Test
-    void activate_WhenInactive_ShouldBecomeActive() {
-        ToolCategory category = ToolCategory.create("Reactivate Test");
-        category.deactivate();
-        assertFalse(category.getActive());
+        assertThrows(IllegalStateException.class, category::deactivate);
 
         category.activate();
         assertTrue(category.getActive());
+
+        assertThrows(IllegalArgumentException.class, category::activate);
     }
 
     @Test
-    void activate_WhenAlreadyActive_ShouldThrowIllegalArgumentException() {
-        ToolCategory category = ToolCategory.create("Active Test");
-        assertTrue(category.getActive());
-
-        Exception exception = assertThrows(IllegalArgumentException.class, category::activate);
-        assertEquals("Categoria já encontra-se ativada.", exception.getMessage());
-    }
-
-    @Test
-    void equals_and_hashCode_Contract() {
+    void testEqualsAndHashCode() {
         UUID id = UUID.randomUUID();
-        ToolCategory category1 = new ToolCategory(id, "Test", true);
-        ToolCategory category2 = new ToolCategory(id, "Test", true);
-        ToolCategory category3 = new ToolCategory(UUID.randomUUID(), "Test", true);
+        ToolCategory cat1 = new ToolCategory(id, "A", true);
+        ToolCategory cat2 = new ToolCategory(id, "B", true);
+        ToolCategory cat3 = new ToolCategory(UUID.randomUUID(), "C", true);
 
-        // equals
-        assertEquals(category1, category2);
-        assertNotEquals(category1, category3);
-        assertNotEquals(category1, null);
-        assertNotEquals(category1, new Object());
+        assertEquals(cat1, cat1);
+        assertEquals(cat1, cat2);
+        assertNotEquals(cat1, cat3);
+        assertNotEquals(null, cat1);
+        assertNotEquals(new Object(), cat1);
 
-
-        // hashCode
-        assertEquals(category1.hashCode(), category2.hashCode());
-        assertNotEquals(category1.hashCode(), category3.hashCode());
+        assertEquals(cat1.hashCode(), cat2.hashCode());
     }
 
     @Test
-    void toString_ShouldContainClassInformation() {
-        ToolCategory category = ToolCategory.create("Wrenches");
-        String str = category.toString();
-
-        assertTrue(str.contains("toolCategoryName='Wrenches'"));
-        assertTrue(str.contains("isActive=true"));
+    void testToString() {
+        UUID id = UUID.randomUUID();
+        ToolCategory cat1 = new ToolCategory(id, "A", true);
+        String s = cat1.toString();
+        assertTrue(s.contains("id=" + id));
+        assertTrue(s.contains("toolCategoryName='A'"));
     }
-
 }

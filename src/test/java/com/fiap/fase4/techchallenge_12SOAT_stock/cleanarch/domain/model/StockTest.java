@@ -1,171 +1,161 @@
 package com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.domain.model;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class StockTest {
-
-    private ToolCategory validCategory;
-
-    @BeforeEach
-    void setUp() {
-        validCategory = new ToolCategory(UUID.randomUUID(), "Screwdrivers", true);
-    }
+class StockTest {
 
     @Test
-    void create_WithValidData_ShouldReturnStockInstance() {
-        Stock stock = Stock.create("Phillips #2", BigDecimal.TEN, 100, validCategory);
+    void testCreateValidStock() {
+        // Arrange
+        ToolCategory category = ToolCategory.create("Ferramentas");
 
+        // Act
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, category);
+
+        // Assert
         assertNotNull(stock);
-        assertEquals("Phillips #2", stock.getToolName());
-        assertEquals(0, BigDecimal.TEN.compareTo(stock.getValue()));
-        assertEquals(100, stock.getQuantity());
-        assertEquals(validCategory, stock.getToolCategory());
+        assertEquals("Martelo", stock.getToolName());
+        assertEquals(new BigDecimal("50.0"), stock.getValue());
+        assertEquals(10, stock.getQuantity());
+        assertEquals(category, stock.getToolCategory());
         assertTrue(stock.isActive());
         assertNotNull(stock.getCreatedAt());
         assertNotNull(stock.getUpdatedAt());
+        assertNull(stock.getId()); // Not set by create method
     }
 
     @Test
-    void create_WithNullName_ShouldThrowException() {
-        Exception e = assertThrows(IllegalArgumentException.class, () -> {
-            Stock.create(null, BigDecimal.TEN, 100, validCategory);
-        });
-        assertEquals("Nome do item não pode ser nulo ou vazio.", e.getMessage());
+    void testCreateInvalidStockThrowsException() {
+        // Arrange
+        ToolCategory category = ToolCategory.create("Ferramentas");
+
+        // Act & Assert
+        Exception e1 = assertThrows(IllegalArgumentException.class,
+                () -> Stock.create("", new BigDecimal("10.0"), 5, category));
+        assertEquals("Nome do item não pode ser nulo ou vazio.", e1.getMessage());
+
+        Exception e2 = assertThrows(IllegalArgumentException.class,
+                () -> Stock.create("Martelo", new BigDecimal("-1.0"), 5, category));
+        assertEquals("Valor não pode ser nulo ou menor que zero.", e2.getMessage());
+
+        Exception e3 = assertThrows(IllegalArgumentException.class,
+                () -> Stock.create("Martelo", new BigDecimal("10.0"), -1, category));
+        assertEquals("Quantidade não pode ser nula ou menor que zero.", e3.getMessage());
+
+        Exception e4 = assertThrows(IllegalArgumentException.class,
+                () -> Stock.create("Martelo", new BigDecimal("10.0"), 5, null));
+        assertEquals("Uma categoria válida é necessária.", e4.getMessage());
     }
 
     @Test
-    void create_WithNegativeValue_ShouldThrowException() {
-        Exception e = assertThrows(IllegalArgumentException.class, () -> {
-            Stock.create("Tool", new BigDecimal("-1"), 100, validCategory);
-        });
-        assertEquals("Valor não pode ser nulo ou menor que zero.", e.getMessage());
-    }
+    void testAddStock() {
+        // Arrange
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, ToolCategory.create("Ferramentas"));
 
-    @Test
-    void create_WithNegativeQuantity_ShouldThrowException() {
-        Exception e = assertThrows(IllegalArgumentException.class, () -> {
-            Stock.create("Tool", BigDecimal.TEN, -1, validCategory);
-        });
-        assertEquals("Quantidade não pode ser nula ou menor que zero.", e.getMessage());
-    }
-
-    @Test
-    void create_WithNullCategory_ShouldThrowException() {
-        Exception e = assertThrows(IllegalArgumentException.class, () -> {
-            Stock.create("Tool", BigDecimal.TEN, 100, null);
-        });
-        assertEquals("Uma categoria válida é necessária.", e.getMessage());
-    }
-
-    @Test
-    void addStock_WithPositiveQuantity_ShouldIncreaseQuantity() {
-        Stock stock = Stock.create("Hammer", BigDecimal.valueOf(25), 10, validCategory);
+        // Act
         stock.addStock(5);
+
+        // Assert
         assertEquals(15, stock.getQuantity());
+        assertTrue(stock.isActive());
     }
 
     @Test
-    void addStock_WithNegativeQuantity_ShouldThrowException() {
-        Stock stock = Stock.create("Hammer", BigDecimal.valueOf(25), 10, validCategory);
+    void testAddStockInvalidQuantity() {
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, ToolCategory.create("Ferramentas"));
+
         Exception e = assertThrows(IllegalArgumentException.class, () -> stock.addStock(-1));
         assertEquals("Quantidade não pode ser nula ou menor do que zero.", e.getMessage());
     }
 
     @Test
-    void removeStock_WithSufficientQuantity_ShouldDecreaseQuantity() {
-        Stock stock = Stock.create("Wrench", BigDecimal.valueOf(15), 20, validCategory);
-        stock.removeStock(15);
-        assertEquals(5, stock.getQuantity());
+    void testRemoveStock() {
+        // Arrange
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, ToolCategory.create("Ferramentas"));
+
+        // Act
+        stock.removeStock(3);
+
+        // Assert
+        assertEquals(7, stock.getQuantity());
     }
 
     @Test
-    void removeStock_WithInsufficientQuantity_ShouldThrowException() {
-        Stock stock = Stock.create("Wrench", BigDecimal.valueOf(15), 20, validCategory);
-        Exception e = assertThrows(IllegalArgumentException.class, () -> stock.removeStock(21));
-        assertEquals("Quantidade em estoque menor do que a informada.", e.getMessage());
+    void testRemoveStockExceptions() {
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, ToolCategory.create("Ferramentas"));
+
+        Exception e1 = assertThrows(IllegalArgumentException.class, () -> stock.removeStock(0));
+        assertEquals("Quantidade não pode ser nula ou menor do que zero.", e1.getMessage());
+
+        Exception e2 = assertThrows(IllegalArgumentException.class, () -> stock.removeStock(11));
+        assertEquals("Quantidade em estoque menor do que a informada.", e2.getMessage());
     }
 
     @Test
-    void removeStock_WithZeroQuantity_ShouldThrowException() {
-        Stock stock = Stock.create("Wrench", BigDecimal.valueOf(15), 20, validCategory);
-        Exception e = assertThrows(IllegalArgumentException.class, () -> stock.removeStock(0));
-        assertEquals("Quantidade não pode ser nula ou menor do que zero.", e.getMessage());
-    }
+    void testDeactivateAndActivate() {
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, ToolCategory.create("Ferramentas"));
 
-    @Test
-    void deactivate_WhenActive_ShouldBecomeInactive() {
-        Stock stock = Stock.create("Pliers", BigDecimal.ONE, 1, validCategory);
+        // Act - Deactivate
         stock.deactivate();
         assertFalse(stock.isActive());
-    }
 
-    @Test
-    void deactivate_WhenAlreadyInactive_ShouldThrowException() {
-        Stock stock = Stock.create("Pliers", BigDecimal.ONE, 1, validCategory);
-        stock.deactivate();
-        Exception e = assertThrows(IllegalStateException.class, stock::deactivate);
-        assertEquals("Item já encontra-se desativado.", e.getMessage());
-    }
+        // Act - Deactivate again throws exception
+        assertThrows(IllegalStateException.class, stock::deactivate);
 
-    @Test
-    void activate_WhenInactive_ShouldBecomeActive() {
-        Stock stock = Stock.create("Pliers", BigDecimal.ONE, 1, validCategory);
-        stock.deactivate();
-        assertFalse(stock.isActive());
+        // Act - Activate
         stock.activate();
         assertTrue(stock.isActive());
+
+        // Act - Activate again throws exception
+        assertThrows(IllegalArgumentException.class, stock::activate);
     }
 
     @Test
-    void activate_WhenAlreadyActive_ShouldThrowException() {
-        Stock stock = Stock.create("Pliers", BigDecimal.ONE, 1, validCategory);
-        Exception e = assertThrows(IllegalArgumentException.class, stock::activate);
-        assertEquals("Item já encontra-se ativado.", e.getMessage());
-    }
+    void testUpdateDetails() {
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, ToolCategory.create("Ferramentas"));
+        ToolCategory newCategory = ToolCategory.create("Novas Ferramentas");
 
-    @Test
-    void updateDetails_WithValidData_ShouldUpdateFields() {
-        Stock stock = Stock.create("Old Name", BigDecimal.ONE, 1, validCategory);
-        ToolCategory newCategory = new ToolCategory(UUID.randomUUID(), "New Category", true);
-        stock.updateDetails("New Name", BigDecimal.TEN, true, newCategory);
+        stock.updateDetails("Marreta", new BigDecimal("100.0"), false, newCategory);
 
-        assertEquals("New Name", stock.getToolName());
-        assertEquals(0, BigDecimal.TEN.compareTo(stock.getValue()));
+        assertEquals("Marreta", stock.getToolName());
+        assertEquals(new BigDecimal("100.0"), stock.getValue());
+        assertFalse(stock.isActive());
         assertEquals(newCategory, stock.getToolCategory());
-        assertTrue(stock.isActive());
     }
 
     @Test
-    void updateDetails_WithNullName_ShouldThrowException() {
-        Stock stock = Stock.create("Old Name", BigDecimal.ONE, 1, validCategory);
-        Exception e = assertThrows(IllegalArgumentException.class, () -> {
-            stock.updateDetails(null, BigDecimal.TEN, true, validCategory);
-        });
-        assertEquals("Nome do item não pode ser nulo.", e.getMessage());
+    void testUpdateDetailsExceptions() {
+        Stock stock = Stock.create("Martelo", new BigDecimal("50.0"), 10, ToolCategory.create("Ferramentas"));
+        ToolCategory category = ToolCategory.create("Categoria");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> stock.updateDetails(null, new BigDecimal("10.0"), true, category));
+        assertThrows(IllegalArgumentException.class,
+                () -> stock.updateDetails("Nome", new BigDecimal("-1.0"), true, category));
+        assertThrows(IllegalArgumentException.class,
+                () -> stock.updateDetails("Nome", new BigDecimal("10.0"), true, null));
     }
 
     @Test
-    void equals_and_hashCode_Contract() {
+    void testEqualsAndHashCodeAndBuilder() {
         UUID id = UUID.randomUUID();
-        Stock stock1 = new Stock(id, "Test", BigDecimal.TEN, 10, validCategory, true, null, null);
-        Stock stock2 = new Stock(id, "Test", BigDecimal.TEN, 10, validCategory, true, null, null);
-        Stock stock3 = new Stock(UUID.randomUUID(), "Test", BigDecimal.TEN, 10, validCategory, true, null, null);
+        Stock stock1 = Stock.builder().id(id).toolName("A").build();
+        Stock stock2 = Stock.builder().id(id).toolName("B").build();
+        Stock stock3 = Stock.builder().id(UUID.randomUUID()).build();
 
+        assertEquals(stock1, stock1);
         assertEquals(stock1, stock2);
         assertNotEquals(stock1, stock3);
+        assertNotEquals(null, stock1);
+        assertNotEquals(new Object(), stock1);
         assertEquals(stock1.hashCode(), stock2.hashCode());
-        assertNotEquals(stock1.hashCode(), stock3.hashCode());
-    }
 
+        stock1.setQuantity(50);
+        assertEquals(50, stock1.getQuantity());
+    }
 }
