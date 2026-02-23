@@ -1,140 +1,123 @@
 package com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.api;
 
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.controller.StockController;
-import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.CreateStockRequestDTO;
-import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.StockRequestDTO;
-import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.StockResponseDTO;
-import org.junit.jupiter.api.BeforeEach;
+import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class StockApiTest {
+class StockApiTest {
 
     @Mock
     private StockController stockController;
 
+    @InjectMocks
     private StockApi stockApi;
 
-    private final UUID sampleUuid = UUID.randomUUID();
+    @Test
+    void createStock_Success() {
+        CreateStockRequestDTO request = new CreateStockRequestDTO("Item", BigDecimal.ONE, 10, UUID.randomUUID());
+        StockResponseDTO response = StockResponseDTO.builder().id(UUID.randomUUID()).build();
 
-    @BeforeEach
-    void setup() {
-        stockApi = new StockApi(stockController);
+        when(stockController.createStock(any())).thenReturn(response);
+
+        ResponseEntity<StockResponseDTO> result = stockApi.createStock(request);
+
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertEquals(response, result.getBody());
     }
 
     @Test
-    void createStock_ShouldReturnCreatedStock() {
-        CreateStockRequestDTO requestDTO = new CreateStockRequestDTO();
-        // preencher campos obrigatórios do requestDTO
+    void createStock_BadRequest() {
+        when(stockController.createStock(any())).thenThrow(new IllegalArgumentException("Invalid"));
 
-        StockResponseDTO responseDTO = StockResponseDTO.builder()
-                .id(sampleUuid)
-                .build();
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> stockApi.createStock(new CreateStockRequestDTO()));
 
-        when(stockController.createStock(requestDTO)).thenReturn(responseDTO);
-
-        ResponseEntity<StockResponseDTO> response = stockApi.createStock(requestDTO);
-
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(sampleUuid, response.getBody().getId());
-        verify(stockController).createStock(requestDTO);
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Invalid", ex.getReason());
     }
 
     @Test
-    void createStock_ShouldThrowBadRequest_WhenInvalidData() {
-        CreateStockRequestDTO invalidRequest = new CreateStockRequestDTO();
-        // dados inválidos
+    void getStockById() {
+        UUID id = UUID.randomUUID();
+        StockResponseDTO response = StockResponseDTO.builder().build();
+        when(stockController.getStockById(id)).thenReturn(response);
 
-        when(stockController.createStock(invalidRequest)).thenThrow(new IllegalArgumentException("Categoria não encontrada"));
-
-        ResponseStatusException thrown = assertThrows(ResponseStatusException.class, () -> {
-            stockApi.createStock(invalidRequest);
-        });
-
-        assertEquals("Categoria não encontrada", thrown.getReason());
-        verify(stockController).createStock(invalidRequest);
+        assertEquals(response, stockApi.getStockById(id));
     }
 
     @Test
-    void getStockById_ShouldReturnStock() {
-        StockResponseDTO responseDTO = StockResponseDTO.builder()
-                .id(sampleUuid)
-                .build();
-
-        when(stockController.getStockById(sampleUuid)).thenReturn(responseDTO);
-
-        StockResponseDTO result = stockApi.getStockById(sampleUuid);
-
-        assertEquals(sampleUuid, result.getId());
-        verify(stockController).getStockById(sampleUuid);
+    void getAllStockItems() {
+        List<StockResponseDTO> list = List.of(StockResponseDTO.builder().build());
+        when(stockController.getAllStockItems()).thenReturn(list);
+        assertEquals(list, stockApi.getAllStockItems());
     }
 
     @Test
-    void getAllStockItemsActive_ShouldReturnList() {
-        List<StockResponseDTO> list = List.of(
-                StockResponseDTO.builder().id(UUID.randomUUID()).build(),
-                StockResponseDTO.builder().id(UUID.randomUUID()).build()
-        );
-
+    void getAllStockItemsActive() {
+        List<StockResponseDTO> list = List.of(StockResponseDTO.builder().build());
         when(stockController.getAllStockItemsActive()).thenReturn(list);
-
-        List<StockResponseDTO> result = stockApi.getAllStockItemsActive();
-
-        assertEquals(2, result.size());
-        verify(stockController).getAllStockItemsActive();
+        assertEquals(list, stockApi.getAllStockItemsActive());
     }
 
     @Test
-    void updateStock_ShouldReturnUpdatedStock() {
-        StockRequestDTO requestDTO = new StockRequestDTO();
+    void updateStock_Success() {
+        UUID id = UUID.randomUUID();
+        StockRequestDTO req = new StockRequestDTO("A", BigDecimal.ONE, true, 10, UUID.randomUUID());
+        StockResponseDTO resp = StockResponseDTO.builder().build();
+        when(stockController.updateStock(id, req)).thenReturn(resp);
 
-        StockResponseDTO responseDTO = StockResponseDTO.builder()
-                .id(sampleUuid)
-                .build();
-
-        when(stockController.updateStock(sampleUuid, requestDTO)).thenReturn(responseDTO);
-
-        StockResponseDTO result = stockApi.updateStock(sampleUuid, requestDTO);
-
-        assertEquals(sampleUuid, result.getId());
-        verify(stockController).updateStock(sampleUuid, requestDTO);
+        assertEquals(resp, stockApi.updateStock(id, req));
     }
 
     @Test
-    void deleteStock_ShouldCallDelete() {
-        doNothing().when(stockController).logicallyDeleteStock(sampleUuid);
+    void updateStock_BadRequest() {
+        UUID id = UUID.randomUUID();
+        when(stockController.updateStock(eq(id), any())).thenThrow(new IllegalArgumentException("Error"));
 
-        stockApi.deleteStock(sampleUuid);
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> stockApi.updateStock(id, new StockRequestDTO()));
 
-        verify(stockController).logicallyDeleteStock(sampleUuid);
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
     @Test
-    void reactivateStock_ShouldReturnStock() {
-        StockResponseDTO responseDTO = StockResponseDTO.builder()
-                .id(sampleUuid)
-                .build();
-
-        when(stockController.reactivateStock(sampleUuid)).thenReturn(responseDTO);
-
-        StockResponseDTO result = stockApi.reactivateStock(sampleUuid);
-
-        assertEquals(sampleUuid, result.getId());
-        verify(stockController).reactivateStock(sampleUuid);
+    void deleteStock() {
+        UUID id = UUID.randomUUID();
+        stockApi.deleteStock(id);
+        verify(stockController).logicallyDeleteStock(id);
     }
 
+    @Test
+    void reactivateStock() {
+        UUID id = UUID.randomUUID();
+        StockResponseDTO resp = StockResponseDTO.builder().build();
+        when(stockController.reactivateStock(id)).thenReturn(resp);
+
+        assertEquals(resp, stockApi.reactivateStock(id));
+    }
+
+    @Test
+    void getStockAvailability() {
+        StockAvailabilityRequestDTO req = new StockAvailabilityRequestDTO(List.of());
+        StockAvailabilityResponseDTO resp = new StockAvailabilityResponseDTO(true, List.of());
+        when(stockController.getStockAvailability(req)).thenReturn(resp);
+
+        assertEquals(resp, stockApi.getStockAvailability(req));
+    }
 }
