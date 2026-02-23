@@ -20,6 +20,14 @@ A documentação da API do microsserviço de estoque está disponível via Swagg
 
 http://localhost:8080/swagger-ui/index.html
 
+### Arquitetura
+
+#### Diagrama de camadas
+![Diagrama de camadas](images/diagrama_de_camadas_stock.png)
+
+#### Diagrama de sequência
+![Diagrama de sequencia](images/diagrama_de_squencia_stock.png)
+
 ### Evidência do SonarCloud funcionando
 
 ![Evidência do SonarCloud funcionando](images/sonar_cloud_geral.png)
