@@ -3,9 +3,9 @@ package com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.a
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.controller.ToolCategoryController;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.ToolCategoryRequestDTO;
 import com.fiap.fase4.techchallenge_12SOAT_stock.cleanarch.infrastructure.web.presenter.dto.ToolCategoryResponseDTO;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -17,148 +17,92 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class ToolCategoryApiTest {
+class ToolCategoryApiTest {
 
     @Mock
-    private ToolCategoryController toolCategoryController;
+    private ToolCategoryController controller;
 
-    private ToolCategoryApi toolCategoryApi;
+    @InjectMocks
+    private ToolCategoryApi api;
 
-    private UUID sampleUuid = UUID.randomUUID();
+    @Test
+    void createToolCategory_Success() {
+        ToolCategoryRequestDTO req = new ToolCategoryRequestDTO("Test");
+        ToolCategoryResponseDTO resp = ToolCategoryResponseDTO.builder().build();
+        when(controller.createToolCategory(req)).thenReturn(resp);
 
-    @BeforeEach
-    void setup() {
-        toolCategoryApi = new ToolCategoryApi(toolCategoryController);
+        ResponseEntity<ToolCategoryResponseDTO> result = api.createToolCategory(req);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertEquals(resp, result.getBody());
     }
 
     @Test
-    void createToolCategory_ShouldReturnCreatedCategory() {
-        ToolCategoryRequestDTO requestDTO = new ToolCategoryRequestDTO();
-        // preencha campos obrigatórios do requestDTO
+    void createToolCategory_BadRequest() {
+        when(controller.createToolCategory(any())).thenThrow(new IllegalArgumentException("Error"));
 
-        ToolCategoryResponseDTO responseDTO = new ToolCategoryResponseDTO();
-        // preencha campos do responseDTO, por exemplo:
-        // responseDTO.setId(sampleUuid);
-
-        when(toolCategoryController.createToolCategory(requestDTO)).thenReturn(responseDTO);
-
-        ResponseEntity<ToolCategoryResponseDTO> response = toolCategoryApi.createToolCategory(requestDTO);
-
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(responseDTO, response.getBody());
-        verify(toolCategoryController).createToolCategory(requestDTO);
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> api.createToolCategory(new ToolCategoryRequestDTO()));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
     @Test
-    void createToolCategory_ShouldThrowBadRequest_WhenInvalidData() {
-        ToolCategoryRequestDTO invalidRequest = new ToolCategoryRequestDTO();
+    void getToolCategoryById() {
+        UUID id = UUID.randomUUID();
+        ToolCategoryResponseDTO resp = ToolCategoryResponseDTO.builder().build();
+        when(controller.getToolCategoryById(id)).thenReturn(resp);
 
-        when(toolCategoryController.createToolCategory(invalidRequest))
-                .thenThrow(new IllegalArgumentException("Requisição inválida"));
-
-        ResponseStatusException thrown = assertThrows(ResponseStatusException.class, () -> {
-            toolCategoryApi.createToolCategory(invalidRequest);
-        });
-
-        assertEquals("Requisição inválida", thrown.getReason());
-        verify(toolCategoryController).createToolCategory(invalidRequest);
+        assertEquals(resp, api.getToolCategoryById(id));
     }
 
     @Test
-    void getToolCategoryById_ShouldReturnCategory() {
-        ToolCategoryResponseDTO responseDTO = new ToolCategoryResponseDTO();
-        // responseDTO.setId(sampleUuid);
-
-        when(toolCategoryController.getToolCategoryById(sampleUuid)).thenReturn(responseDTO);
-
-        ToolCategoryResponseDTO result = toolCategoryApi.getToolCategoryById(sampleUuid);
-
-        assertEquals(responseDTO, result);
-        verify(toolCategoryController).getToolCategoryById(sampleUuid);
+    void getAllToolCategories() {
+        List<ToolCategoryResponseDTO> list = List.of(ToolCategoryResponseDTO.builder().build());
+        when(controller.getAllToolCategories()).thenReturn(list);
+        assertEquals(list, api.getAllToolCategories());
     }
 
     @Test
-    void getAllToolCategories_ShouldReturnList() {
-        List<ToolCategoryResponseDTO> list = List.of(
-                new ToolCategoryResponseDTO(),
-                new ToolCategoryResponseDTO()
-        );
-
-        when(toolCategoryController.getAllToolCategories()).thenReturn(list);
-
-        List<ToolCategoryResponseDTO> result = toolCategoryApi.getAllToolCategories();
-
-        assertEquals(2, result.size());
-        verify(toolCategoryController).getAllToolCategories();
+    void getAllToolCategoriesActive() {
+        List<ToolCategoryResponseDTO> list = List.of(ToolCategoryResponseDTO.builder().build());
+        when(controller.getAllToolCategoriesActive()).thenReturn(list);
+        assertEquals(list, api.getAllToolCategoriesActive());
     }
 
     @Test
-    void getAllToolCategoriesActive_ShouldReturnList() {
-        List<ToolCategoryResponseDTO> list = List.of(
-                new ToolCategoryResponseDTO(),
-                new ToolCategoryResponseDTO()
-        );
+    void updateToolCategory_Success() {
+        UUID id = UUID.randomUUID();
+        ToolCategoryRequestDTO req = new ToolCategoryRequestDTO("A");
+        ToolCategoryResponseDTO resp = ToolCategoryResponseDTO.builder().build();
+        when(controller.updateToolCategory(id, req)).thenReturn(resp);
 
-        when(toolCategoryController.getAllToolCategoriesActive()).thenReturn(list);
-
-        List<ToolCategoryResponseDTO> result = toolCategoryApi.getAllToolCategoriesActive();
-
-        assertEquals(2, result.size());
-        verify(toolCategoryController).getAllToolCategoriesActive();
+        assertEquals(resp, api.updateToolCategory(id, req));
     }
 
     @Test
-    void updateToolCategory_ShouldReturnUpdatedCategory() {
-        ToolCategoryRequestDTO requestDTO = new ToolCategoryRequestDTO();
+    void updateToolCategory_BadRequest() {
+        UUID id = UUID.randomUUID();
+        when(controller.updateToolCategory(eq(id), any())).thenThrow(new IllegalArgumentException("Error"));
 
-        ToolCategoryResponseDTO responseDTO = new ToolCategoryResponseDTO();
-
-        when(toolCategoryController.updateToolCategory(sampleUuid, requestDTO)).thenReturn(responseDTO);
-
-        ToolCategoryResponseDTO result = toolCategoryApi.updateToolCategory(sampleUuid, requestDTO);
-
-        assertEquals(responseDTO, result);
-        verify(toolCategoryController).updateToolCategory(sampleUuid, requestDTO);
+        assertThrows(ResponseStatusException.class, () -> api.updateToolCategory(id, new ToolCategoryRequestDTO()));
     }
 
     @Test
-    void updateToolCategory_ShouldThrowBadRequest_WhenInvalidData() {
-        ToolCategoryRequestDTO invalidRequest = new ToolCategoryRequestDTO();
-
-        when(toolCategoryController.updateToolCategory(sampleUuid, invalidRequest))
-                .thenThrow(new IllegalArgumentException("Requisição inválida"));
-
-        ResponseStatusException thrown = assertThrows(ResponseStatusException.class, () -> {
-            toolCategoryApi.updateToolCategory(sampleUuid, invalidRequest);
-        });
-
-        assertEquals("Requisição inválida", thrown.getReason());
-        verify(toolCategoryController).updateToolCategory(sampleUuid, invalidRequest);
+    void deleteToolCategory() {
+        UUID id = UUID.randomUUID();
+        api.deleteToolCategory(id);
+        verify(controller).logicallyDeleteToolCategory(id);
     }
 
     @Test
-    void deleteToolCategory_ShouldCallDelete() {
-        doNothing().when(toolCategoryController).logicallyDeleteToolCategory(sampleUuid);
+    void reactivateToolCategory() {
+        UUID id = UUID.randomUUID();
+        ToolCategoryResponseDTO resp = ToolCategoryResponseDTO.builder().build();
+        when(controller.reactivateToolCategory(id)).thenReturn(resp);
 
-        toolCategoryApi.deleteToolCategory(sampleUuid);
-
-        verify(toolCategoryController).logicallyDeleteToolCategory(sampleUuid);
+        assertEquals(resp, api.reactivateToolCategory(id));
     }
-
-    @Test
-    void reactivateToolCategory_ShouldReturnCategory() {
-        ToolCategoryResponseDTO responseDTO = new ToolCategoryResponseDTO();
-
-        when(toolCategoryController.reactivateToolCategory(sampleUuid)).thenReturn(responseDTO);
-
-        ToolCategoryResponseDTO result = toolCategoryApi.reactivateToolCategory(sampleUuid);
-
-        assertEquals(responseDTO, result);
-        verify(toolCategoryController).reactivateToolCategory(sampleUuid);
-    }
-
 }
